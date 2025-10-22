@@ -3,11 +3,19 @@
 
 import { useState } from 'react';
 import BetSlip from './BetSlip';
+import Profile from './Profile';
 
 interface BetInfo {
   market: string;
   odds: string;
 }
+
+// Mock user data - replace with real data from your auth system
+const mockUserData = {
+  name: "John Doe",
+  balance: 10000,
+  email: "john@example.com",
+};
 
 function LuckySevenGame() {
   const [message, setMessage] = useState<string>('');
@@ -27,9 +35,42 @@ function LuckySevenGame() {
     }
   };
 
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const toggleProfile = () => {
+    setIsProfileOpen(!isProfileOpen);
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white p-5">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-black text-white">
+      {/* Main Layout with Sidebar */}
+      <div className="flex relative">
+        {/* Profile Button */}
+        <button 
+          onClick={toggleProfile}
+          className="fixed top-4 right-4 z-20 bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition duration-200"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </button>
+
+        {/* Sidebar */}
+        <div className={`fixed right-0 top-0 w-80 min-h-screen bg-gray-900 p-6 border-l border-gray-800 transform transition-transform duration-300 ease-in-out z-10 ${isProfileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <button 
+            onClick={toggleProfile}
+            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <Profile userDetails={mockUserData} />
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-6">
+          <div className="max-w-4xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-8 pt-6">
           <h1 className="text-4xl font-bold text-white mb-2">Lucky Seven Game</h1>
@@ -124,6 +165,8 @@ function LuckySevenGame() {
           onClose={() => setSelectedBet(null)}
           onPlaceBet={handlePlaceBet}
         />
+          </div>
+        </div>
       </div>
     </div>
   );
