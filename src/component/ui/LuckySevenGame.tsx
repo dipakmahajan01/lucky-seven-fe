@@ -1,31 +1,40 @@
 import { useState, useEffect, useRef } from 'react';
 import BetSlip from './BetSlip';
-import Profile from './Profile';
-
+import socket from '../../common/socket';
+// import Profile from './Profile';
 interface BetInfo {
   market: string;
   odds: string;
 }
 
-const mockUserData = {
-  name: "John Doe",
-  balance: 10000,
-  email: "john@example.com",
-};
+// const mockUserData = {
+//   name: "John Doe",
+//   balance: 10000,
+//   email: "john@example.com",
+// };
 
 function LuckySevenGame() {
   const [message, setMessage] = useState('');
   const [showMessage, setShowMessage] = useState(false);
   const [selectedBet, setSelectedBet] = useState<BetInfo | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  // const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [gameDetails, setGameDetails] = useState([]);
+  const [timer, setTimer] = useState("");
+  const [phase, setPhase] = useState("");
 
-  const sidebarRef = useRef<HTMLDivElement>(null);
+  // const sidebarRef = useRef<HTMLDivElement>(null);
 
   const handleBet = (market: string, odds: string) => {
     setSelectedBet({ market, odds });
   };
 
   const handlePlaceBet = (amount: number) => {
+    if( gameDetails && gameDetails.gameState !== "betting"){
+      setMessage(`Betting is closed for this round.`);
+      setShowMessage(true); 
+      setTimeout(() => setShowMessage(false), 3000);
+      return;
+    }
     if (selectedBet) {
       setMessage(`Placed bet of ₹${amount} on ${selectedBet.market} at ${selectedBet.odds}`);
       setShowMessage(true);
@@ -33,31 +42,82 @@ function LuckySevenGame() {
       setTimeout(() => setShowMessage(false), 3000);
     }
   };
-
   const toggleProfile = () => {
     setIsProfileOpen((prev) => !prev);
   };
 
   // ✅ Close sidebar on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        sidebarRef.current &&
-        !sidebarRef.current.contains(event.target as Node) &&
-        !(event.target as HTMLElement).closest('[data-profile-toggle]')
-      ) {
-        setIsProfileOpen(false);
-      }
+  // useEffect(() => {
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     if (
+  //       sidebarRef.current &&
+  //       !sidebarRef.current.contains(event.target as Node) &&
+  //       !(event.target as HTMLElement).closest('[data-profile-toggle]')
+  //     ) {
+  //       setIsProfileOpen(false);
+  //     }
+  //   };
+
+  //   if (isProfileOpen) {
+  //     document.addEventListener('mousedown', handleClickOutside);
+  //   } else {
+  //     document.removeEventListener('mousedown', handleClickOutside);
+  //   }
+
+  //   return () => document.removeEventListener('mousedown', handleClickOutside);
+  // }, [isProfileOpen]);
+
+ useEffect(() => {
+    // when connected
+    socket.on("connect", () => {
+      console.log("✅ Connected to game socket", socket.id);
+    });
+
+    // initial details from backend
+    socket.on("game:initDetails", (data) => {
+      console.log("🟢 Initial Game Details:", data);
+      setGameDetails(data);
+    });
+
+    // round started
+    socket.on("round:start", (data) => {
+      console.log("🏁 New round started:", data);
+      setGameDetails((prev) => ({ ...prev, ...data }));
+    });
+
+    // timers from backend
+    socket.on("game-timer", (data) => {
+      console.log("⏱️ Timer:", data);
+      setTimer(data);
+      // if(gameDetails && gameDetails.gameState === "betting") {
+      // }
+    });
+
+    // bonus or result phase
+    socket.on("phase:bonus", (data) => {
+      console.log("🎁 Bonus phase:", data);
+      setPhase("BONUS");
+    });
+
+    // round updates
+    socket.on("round:update", (data) => {
+      console.log("🔄 Round update:", data);
+      setGameDetails((prev) => ({ ...prev, ...data }));
+    });
+
+    // cleanup all listeners on unmount
+    return () => {
+      socket.off("connect");
+      socket.off("game:initDetails");
+      socket.off("round:start");
+      socket.off("game-timer");
+      socket.off("phase:bonus");
+      socket.off("round:update");
     };
+  }, []);
 
-    if (isProfileOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isProfileOpen]);
+//   return { gameDetails, timer, phase };
+// };
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
@@ -72,8 +132,22 @@ function LuckySevenGame() {
         </svg>
       </button>
 
+         <section className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-purple-900 via-black to-black opacity-50 pointer-events-none">
+
+          <div className='text-center text-white text-2xl'>
+            <span>RoundId:{gameDetails.roundId}</span>
+          </div>
+         </section>
+
+       <section>
+          
+         <div>
+            <h2 className="text-right text-white px-2  border-radius-4 text-2xl mb-4">{gameDetails && gameDetails.gameState === "betting"?timer:0}</h2>
+         </div>
+       </section>
+
       {/* Sidebar (Profile) */}
-      <div
+      {/* <div
         ref={sidebarRef}
         className={`fixed right-0 top-0 w-80 min-h-screen bg-gray-900 p-6 border-l border-gray-800 transform transition-transform duration-300 ease-in-out z-20 ${
           isProfileOpen ? 'translate-x-0' : 'translate-x-full'
@@ -88,7 +162,7 @@ function LuckySevenGame() {
           </svg>
         </button>
         <Profile userDetails={mockUserData} />
-      </div>
+      </div> */}
 
       {/* Toast Message */}
       <div
