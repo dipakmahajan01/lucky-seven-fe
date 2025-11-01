@@ -72,7 +72,7 @@ export default function Profile({ userDetails }: ProfileProps) {
     return (
         <div className="bg-white rounded-lg shadow-xl p-6">
             {/* ✅ Reverse layout: content left, tabs right */}
-            <div className="flex gap-6 flex-row-reverse">
+            <div className="flex gap-6 flex-row">
                 
                 {/* ✅ Tabs on Right */}
                 <div className="w-36 border-l border-gray-200 pl-2 space-y-2">

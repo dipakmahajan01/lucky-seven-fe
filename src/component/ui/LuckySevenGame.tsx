@@ -1,28 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
 import BetSlip from './BetSlip';
 import socket from '../../common/socket';
+import Profile from './Profile';
 // import Profile from './Profile';
 interface BetInfo {
   market: string;
   odds: string;
 }
 
-// const mockUserData = {
-//   name: "John Doe",
-//   balance: 10000,
-//   email: "john@example.com",
-// };
+const mockUserData = {
+  name: "John Doe",
+  balance: 10000,
+  email: "john@example.com",
+};
 
 function LuckySevenGame() {
   const [message, setMessage] = useState('');
   const [showMessage, setShowMessage] = useState(false);
   const [selectedBet, setSelectedBet] = useState<BetInfo | null>(null);
-  // const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [gameDetails, setGameDetails] = useState([]);
   const [timer, setTimer] = useState("");
-  const [phase, setPhase] = useState("");
+  // const [phase, setPhase] = useState("");
 
-  // const sidebarRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   const handleBet = (market: string, odds: string) => {
     setSelectedBet({ market, odds });
@@ -42,30 +43,34 @@ function LuckySevenGame() {
       setTimeout(() => setShowMessage(false), 3000);
     }
   };
+  // if(timer > 0 ){
+   
+  //     setTimeout(() => setShowMessage(false), 3000);
+  // }
   const toggleProfile = () => {
     setIsProfileOpen((prev) => !prev);
   };
 
   // ✅ Close sidebar on outside click
-  // useEffect(() => {
-  //   const handleClickOutside = (event: MouseEvent) => {
-  //     if (
-  //       sidebarRef.current &&
-  //       !sidebarRef.current.contains(event.target as Node) &&
-  //       !(event.target as HTMLElement).closest('[data-profile-toggle]')
-  //     ) {
-  //       setIsProfileOpen(false);
-  //     }
-  //   };
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node) &&
+        !(event.target as HTMLElement).closest('[data-profile-toggle]')
+      ) {
+        setIsProfileOpen(false);
+      }
+    };
 
-  //   if (isProfileOpen) {
-  //     document.addEventListener('mousedown', handleClickOutside);
-  //   } else {
-  //     document.removeEventListener('mousedown', handleClickOutside);
-  //   }
+    if (isProfileOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
 
-  //   return () => document.removeEventListener('mousedown', handleClickOutside);
-  // }, [isProfileOpen]);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isProfileOpen]);
 
  useEffect(() => {
     // when connected
@@ -76,12 +81,22 @@ function LuckySevenGame() {
     // initial details from backend
     socket.on("game:initDetails", (data) => {
       console.log("🟢 Initial Game Details:", data);
+      if(data && data.gameState === "betting" && data.timer > 0) {
+      setMessage(`Place your bets!`);
+      setShowMessage(true);
+      setTimeout(() => setShowMessage(false), 3000); 
+      }
       setGameDetails(data);
     });
 
     // round started
     socket.on("round:start", (data) => {
       console.log("🏁 New round started:", data);
+      if(data && data.gameState === "betting" && data.timer > 0) {
+      setMessage(`Place your bets!`);
+      setShowMessage(true);
+      setTimeout(() => setShowMessage(false), 3000); 
+      }
       setGameDetails((prev) => ({ ...prev, ...data }));
     });
 
@@ -96,12 +111,17 @@ function LuckySevenGame() {
     // bonus or result phase
     socket.on("phase:bonus", (data) => {
       console.log("🎁 Bonus phase:", data);
-      setPhase("BONUS");
+      // setPhase("BONUS");
     });
 
     // round updates
     socket.on("round:update", (data) => {
       console.log("🔄 Round update:", data);
+          if(data && data.gameState === "betting" ) {
+      setMessage(`Place your bets!`);
+      setShowMessage(true);
+      setTimeout(() => setShowMessage(false), 3000); 
+      }
       setGameDetails((prev) => ({ ...prev, ...data }));
     });
 
@@ -135,34 +155,29 @@ function LuckySevenGame() {
          <section className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-purple-900 via-black to-black opacity-50 pointer-events-none">
 
           <div className='text-center text-white text-2xl'>
-            <span>RoundId:{gameDetails.roundId}</span>
+            {/* <span>RoundId:{gameDetails.roundId}</span> */}
           </div>
          </section>
 
        <section>
           
          <div>
-            <h2 className="text-right text-white px-2  border-radius-4 text-2xl mb-4">{gameDetails && gameDetails.gameState === "betting"?timer:0}</h2>
+            <h2 className="text-right text-white px-2 py-4 mx-2 border-radius-4 text-4xl mb-4">{gameDetails && gameDetails.gameState === "betting"?timer:0}</h2>
          </div>
        </section>
+{/* Sidebar (Profile) */}
+{
+  <div
+    ref={sidebarRef}
+    className={`
+      fixed top-0 left-0 min-h-screen p-6 border-r border-gray-800 transform transition-transform duration-300 ease-in-out z-20 bg-white
+      ${isProfileOpen ? 'translate-x-0' : '-translate-x-full'}
+    `}
+  >
+    <Profile userDetails={mockUserData} />
+  </div>
+}
 
-      {/* Sidebar (Profile) */}
-      {/* <div
-        ref={sidebarRef}
-        className={`fixed right-0 top-0 w-80 min-h-screen bg-gray-900 p-6 border-l border-gray-800 transform transition-transform duration-300 ease-in-out z-20 ${
-          isProfileOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <button
-          onClick={toggleProfile}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        <Profile userDetails={mockUserData} />
-      </div> */}
 
       {/* Toast Message */}
       <div
